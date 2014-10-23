@@ -47,14 +47,13 @@ class Plugin_Name_i18n {
 			false,
 			dirname( dirname( plugin_basename( __FILE__ ) ) ) . '/languages/'
 		);
-
 	}
 
 	/**
 	 * Set the domain equal to that of the specified domain.
 	 *
 	 * @since    1.0.0
-	 * @param    string    $domain    The domain that represents the locale of this plugin.
+	 * @param string  $domain The domain that represents the locale of this plugin.
 	 */
 	public function set_domain( $domain ) {
 		$this->domain = $domain;

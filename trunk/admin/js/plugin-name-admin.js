@@ -28,5 +28,31 @@
 	 * for any particular page. Though other scripts in WordPress core, other plugins, and other themes may
 	 * be doing this, we should try to minimize doing that in our own work.
 	 */
+	$( window ).load(function() {
+		
+
+
+		$('#publish').click(function() {
+			var form = $( "#wooslickcarousel_meta_box" );
+			$( "#wooslickcarousel_meta_box" ).validate({
+				rules: {
+					items: {
+						required: false,
+						number: true
+					}
+				}
+			});
+			return false;
+		});
+
+		$("#owlc-admin-tab .nav-tab").on('click', function(){
+			$("#owlc-admin-tab > div").addClass('hidden');
+			$($(this).attr('href')).removeClass('hidden');
+		});
+ 	});
+
+
+
+	 
 
 })( jQuery );

@@ -68,7 +68,7 @@ class Plugin_Name {
 	 */
 	public function __construct() {
 
-		$this->plugin_name = 'plugin-name';
+		$this->plugin_name = 'woocommerce-slick-slider';
 		$this->version = '1.0.0';
 
 		$this->load_dependencies();
@@ -77,8 +77,9 @@ class Plugin_Name {
 		$this->define_public_hooks();
 
 		$this->loader->add_action( 'init', $this, 'woocommerce_slick_carousel_type', 0 );
-		$this->loader->add_action( 'add_meta_boxes', $this, 'carousel_box');
-		$this->loader->add_action( 'save_post', $this, 'save');
+		$this->loader->add_action( 'add_meta_boxes', $this, 'carousel_box' );
+		//$this->loader->add_action( 'save_post', $this, 'save');
+
 
 	}
 
@@ -111,6 +112,11 @@ class Plugin_Name {
 		 * of the plugin.
 		 */
 		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-plugin-name-i18n.php';
+
+		/**
+		 * The class responsible for defining the carousel object.
+		 */
+		require_once plugin_dir_path( dirname( __FILE__ ) ) . 'includes/class-carousel.php';
 
 		/**
 		 * The class responsible for defining all actions that occur in the Dashboard.
@@ -158,6 +164,14 @@ class Plugin_Name {
 
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_styles' );
 		$this->loader->add_action( 'admin_enqueue_scripts', $plugin_admin, 'enqueue_scripts' );
+
+		$this->loader->add_action( 'add_meta_boxes', $plugin_admin, 'carousel_meta_box' );
+		$this->loader->add_action( 'init', $plugin_admin, 'remove_post_type_support', 10 );
+		$this->loader->add_action( 'save_post', $plugin_admin, 'save' );
+		add_shortcode( 'woosc', array( $plugin_admin, 'shortcode' ) );
+
+		$this->loader->add_filter( 'manage_edit-wooslickcarousel_columns', $plugin_admin, 'set_custom_edit_carousel_columns' );
+		$this->loader->add_action( 'manage_wooslickcarousel_posts_custom_column', $plugin_admin, 'custom_carousel_column', 10, 2 );
 
 	}
 
@@ -218,49 +232,55 @@ class Plugin_Name {
 	}
 
 	public function woocommerce_slick_carousel_type() {
-  		$labels = array(
-    'name'               => _x( 'Slick Carousels', 'WooCommerce Slick Carousels' ),
-    'singular_name'      => _x( 'Slick Carousel', 'WooCommerce Slick Carousel' ),
-    'add_new'            => _x( 'Add New', 'book' ),
-    'add_new_item'       => __( 'Add New Carousel' ),
-    'edit_item'          => __( 'Edit Carousel' ),
-    'new_item'           => __( 'New Carousel' ),
-    'all_items'          => __( 'All Carousels' ),
-    'view_item'          => __( 'View Carousel' ),
-    'search_items'       => __( 'Search Carousels' ),
-    'not_found'          => __( 'No carousels found' ),
-    'not_found_in_trash' => __( 'No carousels found in the Trash' ), 
-    'parent_item_colon'  => '',
-    'menu_name'          => 'WooCommerce Slick Slider'
-  );
-	  $args = array(
-	    'labels'        => $labels,
-	    'description'   => 'Holds our products and product specific data',
-	    'public'        => true,
-	    'menu_position' => 5,
-	    'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt', 'comments' ),
-	    'has_archive'   => true,
-	  );
-  		register_post_type( 'wooslickcarousel', $args );
+		$labels = array(
+			'name'               => _x( 'Slick Carousels', 'WooCommerce Slick Carousels' ),
+			'singular_name'      => _x( 'Slick Carousel', 'WooCommerce Slick Carousel' ),
+			'add_new'            => _x( 'Add New', 'book' ),
+			'add_new_item'       => __( 'Add New Carousel' ),
+			'edit_item'          => __( 'Edit Carousel' ),
+			'new_item'           => __( 'New Carousel' ),
+			'all_items'          => __( 'All Carousels' ),
+			'view_item'          => __( 'View Carousel' ),
+			'search_items'       => __( 'Search Carousels' ),
+			'not_found'          => __( 'No carousels found' ),
+			'not_found_in_trash' => __( 'No carousels found in the Trash' ),
+			'parent_item_colon'  => '',
+			'menu_name'          => 'WooCommerce Slick Slider'
+		);
+		$args = array(
+			'labels'        => $labels,
+			'description'   => 'Holds our products and product specific data',
+			'public'        => true,
+			'menu_position' => 5,
+			'supports'      => array( 'title', 'editor', 'thumbnail', 'excerpt', 'comments' ),
+			'has_archive'   => true,
+		);
+		register_post_type( 'wooslickcarousel', $args );
 	}
 
-public function carousel_box() {
-    add_meta_box( 
-        'myplugin_new_field',
-        __( 'Product Price', 'myplugin_textdomain' ),
-        array( $this, 'render_meta_box_content' ),
-        'wooslickcarousel',
-        'side',
-        'high'
-    );
-}
+
+
+	public function carousel_box() {
+		add_meta_box(
+			'myplugin_new_field',
+			__( 'Product Price', 'myplugin_textdomain' ),
+			array( $this, 'render_meta_box_content' ),
+			'wooslickcarousel',
+			'side',
+			'high'
+		);
+	}
+
+
+
+
 	/**
 	 * Render Meta Box content.
 	 *
 	 * @param WP_Post $post The post object.
 	 */
 	public function render_meta_box_content( $post ) {
-	
+
 		// Add an nonce field so we can check for it later.
 		wp_nonce_field( 'myplugin_inner_custom_box', 'myplugin_inner_custom_box_nonce' );
 
@@ -272,55 +292,23 @@ public function carousel_box() {
 		_e( 'Description for this field', 'myplugin_textdomain' );
 		echo '</label> ';
 		echo '<input type="text" id="myplugin_new_field" name="myplugin_new_field"';
-                echo ' value="' . esc_attr( $value ) . '" size="25" />';
-	}
+		echo ' value="' . esc_attr( $value ) . '" size="25" />';
 
-		/**
-	 * Save the meta when the post is saved.
-	 *
-	 * @param int $post_id The ID of the post being saved.
-	 */
-	public function save( $post_id ) {
-	
-		/*
-		 * We need to verify this came from the our screen and with proper authorization,
-		 * because save_post can be triggered at other times.
-		 */
+		echo '<select>';
+		$args = array(
+			'public'   => true,
+			'_builtin' => false
+		);
+		$output = 'names'; // names oppure objects, si noti che names è il valore predefinito
+		$operator = 'and'; // 'and' oppure 'or'
+		$post_types = get_post_types( $args, $output, $operator );
+		foreach ( $post_types as $post_type ) {
 
-		// Check if our nonce is set.
-		if ( ! isset( $_POST['myplugin_inner_custom_box_nonce'] ) )
-			return $post_id;
-
-		$nonce = $_POST['myplugin_inner_custom_box_nonce'];
-
-		// Verify that the nonce is valid.
-		if ( ! wp_verify_nonce( $nonce, 'myplugin_inner_custom_box' ) )
-			return $post_id;
-
-		// If this is an autosave, our form has not been submitted,
-                //     so we don't want to do anything.
-		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) 
-			return $post_id;
-
-		// Check the user's permissions.
-		if ( 'page' == $_POST['post_type'] ) {
-
-			if ( ! current_user_can( 'edit_page', $post_id ) )
-				return $post_id;
-	
-		} else {
-
-			if ( ! current_user_can( 'edit_post', $post_id ) )
-				return $post_id;
+			echo '<option>' . $post_type . '</option>';
 		}
-
-		/* OK, its safe for us to save the data now. */
-
-		// Sanitize the user input.
-		$mydata = sanitize_text_field( $_POST['myplugin_new_field'] );
-
-		// Update the meta field.
-		update_post_meta( $post_id, '_my_meta_value_key', $mydata );
+		echo '</select>';
 	}
+
+
 
 }
