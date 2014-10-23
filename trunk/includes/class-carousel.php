@@ -130,6 +130,27 @@ class Carousel {
 		$instance->version = $version;
 		
 		$carousel_fields = get_post_meta ( $post_id, "owlc_data", false )[0];
+
+		echo sizeof($carousel_fields);
+		foreach ( $carousel_fields as $attribute_name => $value ) {
+			$instance->attrs_array [$attribute_name] = $value;
+			//Prepare here  js carousel arg excluding default value
+			if ($attribute_name != "owlc_responsive") {
+				array_push ( $instance->owlc_js_arg, str_replace ( "owlc_", "", $attribute_name ) . ": " . $carousel_fields [$attribute_name] );
+			} else {
+				$width_array = array();
+				foreach ( $carousel_fields [$attribute_name] as $width => $responsive_attr ) {
+					$attr_array = array();
+					foreach ( $carousel_fields [$attribute_name] [$width] as $attr => $attr_val ) {
+						$attr_array[] = str_replace ("'","",str_replace ( "owlc_", "", $attr )) . " : " . $attr_val ;
+					}
+					$width_array[] = $width . " : {" . PHP_EOL . implode(",".PHP_EOL , $attr_array) . "}";
+				}
+				$responsive .= "responsive : {" . PHP_EOL . implode(",".PHP_EOL , $width_array) ."}" . PHP_EOL;
+				array_push ( $instance->owlc_js_arg, $responsive );
+			}
+		}
+		/*
 		foreach ( $instance->attrs_array as $attribute_name => $value ) {
 			if (array_key_exists ( $attribute_name, $carousel_fields )) {
 				$instance->attrs_array [$attribute_name] = $carousel_fields [$attribute_name];
@@ -151,6 +172,7 @@ class Carousel {
 				}
 			}
 		}
+		*/
 		return $instance;
 	}
 	public function edit_form($plugin_i18n) {
